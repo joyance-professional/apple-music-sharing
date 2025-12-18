@@ -3,163 +3,137 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Music Share</title>
+    <title>Music Fullscreen</title>
     <style>
+        /* 徹底移除所有外邊距，確保內容貼齊邊緣 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            -webkit-font-smoothing: antialiased;
         }
 
         html, body {
             width: 100%;
             height: 100%;
-            background-color: #ffffff;
-            color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            overflow: hidden; /* 防止分享模式出現雙捲軸 */
+            overflow: hidden; /* 禁止網頁本身捲動 */
+            background-color: #000; /* 背景設為黑色，避免載入時閃白 */
         }
 
-        /* --- 創作者模式介面 (預設隱藏，由 JS 控制) --- */
+        /* 創作者模式介面 */
         #creator-ui {
-            display: none;
+            display: flex;
             height: 100%;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px;
+            background: #fff;
+            color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             text-align: center;
-        }
-
-        h1 {
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.3em;
-            margin-bottom: 60px;
-        }
-
-        .input-group {
-            width: 100%;
-            max-width: 400px;
+            padding: 20px;
         }
 
         input {
-            width: 100%;
+            width: 80%;
+            max-width: 400px;
             border: none;
-            border-bottom: 1px solid #000;
-            padding: 15px 0;
-            font-size: 16px;
-            background: transparent;
+            border-bottom: 2px solid #000;
+            padding: 10px;
+            font-size: 1.2rem;
             outline: none;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             text-align: center;
         }
 
         button {
             background: #000;
             color: #fff;
+            padding: 10px 30px;
             border: none;
-            padding: 12px 40px;
-            font-size: 11px;
-            letter-spacing: 0.2em;
             cursor: pointer;
-            transition: opacity 0.2s;
+            letter-spacing: 2px;
         }
 
-        button:hover { opacity: 0.7; }
-
-        /* --- 分享模式介面 (全螢幕播放器) --- */
+        /* 分享模式：播放器容器強制全螢幕 */
         #player-container {
-            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
             width: 100vw;
             height: 100vh;
-            background: #fff;
+            display: none;
+            z-index: 1;
         }
 
+        /* 重要：強制 iframe 撐開，忽略 Apple 預設的寬度限制 */
         iframe {
-            width: 100%;
-            height: 100%;
+            width: 100% !important;
+            height: 100% !important;
+            max-width: none !important; /* 移除 Apple 預設的 660px 限制 */
             border: none;
+            display: block;
         }
 
-        /* 浮動分享按鈕 (僅在分享模式下淡出顯示，方便二次分享) */
+        /* 隱藏的分享按鈕：滑鼠移到右上角才會隱約現身 */
         #floating-share {
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
-            background: rgba(255,255,255,0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid #000;
-            padding: 8px 15px;
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            cursor: pointer;
             z-index: 100;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            cursor: pointer;
             display: none;
+            text-transform: uppercase;
+            backdrop-filter: blur(5px);
         }
-
-        /* 動態顯示類別 */
-        body.mode-creator #creator-ui { display: flex; }
-        body.mode-share #player-container { display: block; }
-        body.mode-share #floating-share { display: block; }
-
+        #floating-share:hover { background: #fff; color: #000; }
     </style>
 </head>
-<body class="mode-creator">
+<body>
 
-    <!-- 創作者模式：輸入網址 -->
+    <!-- 模式 1: 產生連結介面 -->
     <div id="creator-ui">
-        <h1>Music Curator</h1>
-        <div class="input-group">
-            <input type="text" id="music-input" placeholder="PASTE PATH OR URL" autocomplete="off">
-            <button onclick="generateAndCopy()">GENERATE & COPY LINK</button>
-        </div>
+        <p style="font-size: 10px; letter-spacing: 5px; margin-bottom: 40px;">MUSIC SHARE</p>
+        <input type="text" id="url-input" placeholder="貼上 /tw/album/... 連結">
+        <button onclick="create()">COPY & PREVIEW</button>
     </div>
 
-    <!-- 分享模式：全螢幕播放 -->
+    <!-- 模式 2: 全屏播放器 -->
     <div id="player-container">
-        <div id="player-mount"></div>
+        <div id="player-mount" style="width: 100%; height: 100%;"></div>
     </div>
 
-    <button id="floating-share" onclick="copyCurrentUrl()">Copy Link</button>
+    <button id="floating-share" onclick="copyCurrent()">Share Link</button>
 
     <script>
-        const body = document.body;
-        const input = document.getElementById('music-input');
-        const mount = document.getElementById('player-mount');
+        const params = new URLSearchParams(window.location.search);
+        const musicId = params.get('m');
 
-        // 1. 初始化檢查：如果有參數，直接進入分享模式
-        window.onload = () => {
-            const params = new URLSearchParams(window.location.search);
-            const m = params.get('m');
-            if (m) {
-                showPlayer(m);
-            } else {
-                body.className = 'mode-creator';
-            }
-        };
+        if (musicId) {
+            startPlayer(musicId);
+        }
 
-        // 2. 顯示播放器邏輯
-        function showPlayer(pathData) {
-            body.className = 'mode-share';
-            
-            // 解析路徑
-            let path = "";
+        function startPlayer(pathData) {
+            document.getElementById('creator-ui').style.display = 'none';
+            document.getElementById('player-container').style.display = 'block';
+            document.getElementById('floating-share').style.display = 'block';
+
+            let path = pathData;
             if (pathData.includes('music.apple.com')) {
                 const url = new URL(pathData);
                 path = url.pathname + url.search;
-            } else {
-                path = pathData.startsWith('/') ? pathData : '/' + pathData;
+            } else if (!pathData.startsWith('/')) {
+                path = '/' + pathData;
             }
 
+            // 生成嵌入連結
             const embedUrl = `https://embed.music.apple.com${path}`;
             
-            // 判斷是否為歌單以優化顯示
-            // 注意：Apple Music 嵌入在寬度足夠時會自動填滿，高度則由 iframe 定義
-            mount.innerHTML = `
+            document.getElementById('player-mount').innerHTML = `
                 <iframe 
                     allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
                     sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
@@ -168,47 +142,26 @@
             `;
         }
 
-        // 3. 產生連結並自動複製
-        function generateAndCopy() {
-            const val = input.value.trim();
+        function create() {
+            const val = document.getElementById('url-input').value;
             if (!val) return;
-
-            let path = "";
-            try {
-                if (val.includes('music.apple.com')) {
-                    const url = new URL(val);
-                    path = url.pathname + url.search;
-                } else {
-                    path = val.startsWith('/') ? val : '/' + val;
-                }
-            } catch (e) { path = val; }
-
-            // 構造分享連結
-            const shareUrl = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
             
-            // 複製到剪貼簿
-            navigator.clipboard.writeText(shareUrl).then(() => {
-                const originalBtnText = document.querySelector('button').innerText;
-                document.querySelector('button').innerText = 'COPIED TO CLIPBOARD';
-                setTimeout(() => {
-                    // 創作者點擊後也可以直接切換到預覽模式
-                    window.location.href = shareUrl;
-                }, 800);
+            let path = val;
+            if (val.includes('music.apple.com')) {
+                const url = new URL(val);
+                path = url.pathname + url.search;
+            }
+
+            const finalLink = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
+            
+            navigator.clipboard.writeText(finalLink).then(() => {
+                window.location.href = finalLink; // 直接跳轉預覽
             });
         }
 
-        function copyCurrentUrl() {
-            navigator.clipboard.writeText(window.location.href).then(() => {
-                const btn = document.getElementById('floating-share');
-                btn.innerText = 'COPIED';
-                setTimeout(() => btn.innerText = 'COPY LINK', 2000);
-            });
+        function copyCurrent() {
+            navigator.clipboard.writeText(window.location.href).then(() => alert('Copied!'));
         }
-
-        // 監聽 Enter 鍵
-        input.addEventListener("keypress", (e) => {
-            if (e.key === "Enter") generateAndCopy();
-        });
     </script>
 </body>
 </html>
