@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Share | 極簡音樂分享</title>
+    <!-- 引入字體 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --apple-red: #fa243c;
+            --glass: rgba(255, 255, 255, 0.8);
+            --bg: #f2f2f7;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            color: #1d1d1f;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            text-align: center;
+            transition: all 0.5s ease;
+        }
+
+        h1 {
+            font-weight: 700;
+            font-size: 1.8rem;
+            margin-bottom: 25px;
+            letter-spacing: -0.5px;
+        }
+
+        /* 輸入區塊 */
+        .input-group {
+            margin-bottom: 30px;
+        }
+
+        input {
+            width: 100%;
+            padding: 15px 20px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: rgba(255,255,255,0.5);
+            font-size: 1rem;
+            outline: none;
+            transition: 0.3s;
+            margin-bottom: 15px;
+        }
+
+        input:focus {
+            border-color: var(--apple-red);
+            background: #fff;
+            box-shadow: 0 0 0 4px rgba(250, 36, 60, 0.1);
+        }
+
+        .btn-main {
+            background: var(--apple-red);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s;
+            box-shadow: 0 4px 15px rgba(250, 36, 60, 0.3);
+        }
+
+        .btn-main:hover {
+            transform: scale(1.05);
+            background: #d91e34;
+        }
+
+        /* 播放器容器 */
+        #player-wrapper {
+            margin-top: 20px;
+            display: none; /* 預設隱藏 */
+            animation: fadeIn 0.8s ease;
+        }
+
+        iframe {
+            width: 100%;
+            height: 180px; /* 單曲高度，若是歌單可動態改為 450px */
+            border-radius: 12px;
+            border: none;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+
+        /* 分享按鈕 */
+        #share-section {
+            margin-top: 25px;
+            display: none;
+        }
+
+        .btn-share {
+            background: transparent;
+            color: #555;
+            border: 1.5px solid #ccc;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: 0.3s;
+        }
+
+        .btn-share:hover {
+            background: #fff;
+            border-color: #999;
+        }
+
+        footer {
+            margin-top: 30px;
+            font-size: 0.8rem;
+            color: rgba(0,0,0,0.4);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 手機端優化 */
+        @media (max-width: 480px) {
+            .container { padding: 30px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Share Your Vibe</h1>
+        
+        <div class="input-group">
+            <input type="text" id="music-input" placeholder="貼入連結或 /tw/album/...">
+            <button class="btn-main" onclick="loadMusic()">生成播放器</button>
+        </div>
+
+        <div id="player-wrapper">
+            <!-- 播放器將注入在此 -->
+        </div>
+
+        <div id="share-section">
+            <button class="btn-share" onclick="copyShareLink()">
+                <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                    <path d="M13.5 1a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.499 2.499 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5zm-8.5 4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm11 5.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+                </svg>
+                複製分享連結
+            </button>
+        </div>
+    </div>
+
+    <footer>
+        Powered by Apple Music API &bull; 靜態分享工具
+    </footer>
+
+    <script>
+        const inputEl = document.getElementById('music-input');
+        const playerWrapper = document.getElementById('player-wrapper');
+        const shareSection = document.getElementById('share-section');
+
+        // 1. 頁面加載時檢查網址參數
+        window.onload = () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const musicPath = urlParams.get('m');
+            if (musicPath) {
+                inputEl.value = musicPath;
+                loadMusic(musicPath);
+            }
+        };
+
+        // 2. 處理路徑並加載播放器
+        function loadMusic(customPath = null) {
+            let rawValue = customPath || inputEl.value.trim();
+            if (!rawValue) return;
+
+            // 提取路徑：無論用戶貼完整連結還是部分路徑，都只取出 /tw/album/... 或 /tw/playlist/...
+            let path = "";
+            if (rawValue.includes('music.apple.com')) {
+                const url = new URL(rawValue);
+                path = url.pathname + url.search;
+            } else {
+                path = rawValue.startsWith('/') ? rawValue : '/' + rawValue;
+            }
+
+            // 判斷是專輯、單曲還是歌單，動態調整高度
+            const isPlaylist = path.includes('playlist');
+            const height = isPlaylist ? "450px" : "180px";
+
+            // 生成 iframe
+            const embedUrl = `https://embed.music.apple.com${path}`;
+            playerWrapper.innerHTML = `
+                <iframe 
+                    allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
+                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
+                    style="height: ${height}"
+                    src="${embedUrl}">
+                </iframe>
+            `;
+
+            playerWrapper.style.display = 'block';
+            shareSection.style.display = 'block';
+
+            // 更新網址參數，不刷新頁面
+            const newUrl = window.location.protocol + "//" + window.location.host + window.location.pathname + '?m=' + encodeURIComponent(path);
+            window.history.pushState({path: newUrl}, '', newUrl);
+        }
+
+        // 3. 分享功能
+        function copyShareLink() {
+            const currentUrl = window.location.href;
+            navigator.clipboard.writeText(currentUrl).then(() => {
+                alert('連結已複製到剪貼簿！');
+            }).catch(err => {
+                console.error('無法複製', err);
+            });
+        }
+
+        // 支援按下 Enter 鍵搜尋
+        inputEl.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                loadMusic();
+            }
+        });
+    </script>
+</body>
+</html>
