@@ -3,20 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Music Fullscreen</title>
+    <title>Music Experience</title>
     <style>
-        /* 徹底移除所有外邊距，確保內容貼齊邊緣 */
+        /* 基礎樣式重置 */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
 
+        /* 確保背景填滿，禁止捲動 */
         html, body {
             width: 100%;
             height: 100%;
-            overflow: hidden; /* 禁止網頁本身捲動 */
-            background-color: #000; /* 背景設為黑色，避免載入時閃白 */
+            overflow: hidden;
+            background-color: #ffffff; /* 如果你喜歡深色，可以改為 #000 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
         /* 創作者模式介面 */
@@ -26,124 +28,126 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            background: #fff;
-            color: #000;
-            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
-            text-align: center;
             padding: 20px;
+            z-index: 10;
+            position: relative;
+            background: #fff;
         }
 
+        h1 { font-size: 14px; letter-spacing: 4px; margin-bottom: 40px; color: #888; }
         input {
-            width: 80%;
-            max-width: 400px;
-            border: none;
-            border-bottom: 2px solid #000;
-            padding: 10px;
-            font-size: 1.2rem;
-            outline: none;
-            margin-bottom: 20px;
-            text-align: center;
+            width: 100%; max-width: 350px; border: none; border-bottom: 1px solid #000;
+            padding: 10px; font-size: 16px; outline: none; text-align: center; margin-bottom: 30px;
+        }
+        button.gen-btn {
+            background: #000; color: #fff; padding: 12px 30px; border: none; cursor: pointer;
+            font-size: 12px; letter-spacing: 2px;
         }
 
-        button {
-            background: #000;
-            color: #fff;
-            padding: 10px 30px;
-            border: none;
-            cursor: pointer;
-            letter-spacing: 2px;
-        }
-
-        /* 分享模式：播放器容器強制全螢幕 */
-        #player-container {
-            position: fixed;
-            top: 0;
-            left: 0;
+        /* --- 分享模式：關鍵的全屏置中佈局 --- */
+        #player-wrapper {
+            display: none; /* 初始隱藏 */
             width: 100vw;
             height: 100vh;
-            display: none;
-            z-index: 1;
+            display: flex;
+            align-items: center;    /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            background-color: #ffffff; 
         }
 
-        /* 重要：強制 iframe 撐開，忽略 Apple 預設的寬度限制 */
+        .player-container {
+            width: 100%;
+            max-width: 800px; /* 為了美感，限制最大寬度，避免在寬螢幕上拉得太扁 */
+            padding: 20px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
         iframe {
             width: 100% !important;
-            height: 100% !important;
-            max-width: none !important; /* 移除 Apple 預設的 660px 限制 */
             border: none;
-            display: block;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1); /* 加入一點柔和陰影增加立體感 */
+            border-radius: 20px; /* 配合 Apple Music 的圓角風格 */
         }
 
-        /* 隱藏的分享按鈕：滑鼠移到右上角才會隱約現身 */
-        #floating-share {
+        /* 浮動控制鈕 */
+        #share-again {
             position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 100;
-            background: rgba(255,255,255,0.2);
-            color: #fff;
-            padding: 5px 10px;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
             font-size: 10px;
-            border: 1px solid rgba(255,255,255,0.3);
-            cursor: pointer;
-            display: none;
+            color: #aaa;
+            text-decoration: none;
+            letter-spacing: 2px;
             text-transform: uppercase;
-            backdrop-filter: blur(5px);
+            cursor: pointer;
+            z-index: 100;
+            display: none;
         }
-        #floating-share:hover { background: #fff; color: #000; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
 
-    <!-- 模式 1: 產生連結介面 -->
+    <!-- 創作者模式 -->
     <div id="creator-ui">
-        <p style="font-size: 10px; letter-spacing: 5px; margin-bottom: 40px;">MUSIC SHARE</p>
-        <input type="text" id="url-input" placeholder="貼上 /tw/album/... 連結">
-        <button onclick="create()">COPY & PREVIEW</button>
+        <h1>CURATOR</h1>
+        <input type="text" id="url-input" placeholder="PASTE APPLE MUSIC LINK">
+        <button class="gen-btn" onclick="generate()">GENERATE & PREVIEW</button>
     </div>
 
-    <!-- 模式 2: 全屏播放器 -->
-    <div id="player-container">
-        <div id="player-mount" style="width: 100%; height: 100%;"></div>
+    <!-- 分享模式 -->
+    <div id="player-wrapper">
+        <div class="player-container" id="mount-point"></div>
     </div>
 
-    <button id="floating-share" onclick="copyCurrent()">Share Link</button>
+    <div id="share-again" onclick="copyLink()">Copy Share Link</div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const musicId = params.get('m');
+        const m = params.get('m');
 
-        if (musicId) {
-            startPlayer(musicId);
+        if (m) {
+            initPlayer(m);
         }
 
-        function startPlayer(pathData) {
+        function initPlayer(pathData) {
+            // 切換 UI
             document.getElementById('creator-ui').style.display = 'none';
-            document.getElementById('player-container').style.display = 'block';
-            document.getElementById('floating-share').style.display = 'block';
+            document.getElementById('player-wrapper').style.display = 'flex';
+            document.getElementById('share-again').style.display = 'block';
 
-            let path = pathData;
+            let path = "";
             if (pathData.includes('music.apple.com')) {
                 const url = new URL(pathData);
                 path = url.pathname + url.search;
-            } else if (!pathData.startsWith('/')) {
-                path = '/' + pathData;
+            } else {
+                path = pathData.startsWith('/') ? pathData : '/' + pathData;
             }
 
-            // 生成嵌入連結
+            // 核心邏輯：判斷高度
+            // 如果是 playlist 或 album，給予較大的高度；如果是單曲(i=)，給予較小高度。
+            const isCollection = path.includes('playlist') || (path.includes('album') && !path.includes('?i='));
+            const frameHeight = isCollection ? "450px" : "180px";
+
             const embedUrl = `https://embed.music.apple.com${path}`;
             
-            document.getElementById('player-mount').innerHTML = `
+            document.getElementById('mount-point').innerHTML = `
                 <iframe 
                     allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
                     sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
+                    style="height: ${frameHeight};"
                     src="${embedUrl}">
                 </iframe>
             `;
         }
 
-        function create() {
-            const val = document.getElementById('url-input').value;
+        function generate() {
+            const val = document.getElementById('url-input').value.trim();
             if (!val) return;
             
             let path = val;
@@ -152,15 +156,17 @@
                 path = url.pathname + url.search;
             }
 
-            const finalLink = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
+            const finalUrl = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
             
-            navigator.clipboard.writeText(finalLink).then(() => {
-                window.location.href = finalLink; // 直接跳轉預覽
+            navigator.clipboard.writeText(finalUrl).then(() => {
+                window.location.href = finalUrl;
             });
         }
 
-        function copyCurrent() {
-            navigator.clipboard.writeText(window.location.href).then(() => alert('Copied!'));
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert('Link Copied');
+            });
         }
     </script>
 </body>
