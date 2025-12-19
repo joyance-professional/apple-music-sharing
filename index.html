@@ -2,163 +2,170 @@
 <html lang="zh-TW">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Music Share</title>
-    <!-- 預設的 Open Graph (靜態) -->
-    <meta property="og:title" content="Music Curator">
-    <meta property="og:description" content="分享我的音樂品味">
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Music Experience</title>
     <style>
-        :root { --bg: #ffffff; --text: #000000; }
-        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-font-smoothing: antialiased; }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
-            overflow-x: hidden;
+        /* 基礎樣式重置 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        /* 背景模糊封面 - 增加氛圍感 */
-        #bg-blur {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-size: cover;
-            background-position: center;
-            filter: blur(60px) opacity(0.2);
-            z-index: -1;
-            transition: background-image 1s ease;
+        /* 確保背景填滿，禁止捲動 */
+        html, body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #ffffff; /* 如果你喜歡深色，可以改為 #000 */
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
 
-        /* 創作者模式 */
+        /* 創作者模式介面 */
         #creator-ui {
-            display: flex; height: 100vh; flex-direction: column; align-items: center; justify-content: center;
-            padding: 20px; transition: 0.5s;
+            display: flex;
+            height: 100%;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            z-index: 10;
+            position: relative;
+            background: #fff;
         }
-        .input-box {
-            width: 100%; max-width: 400px; text-align: center;
-        }
-        h1.logo { font-size: 12px; letter-spacing: 5px; margin-bottom: 50px; opacity: 0.5; }
+
+        h1 { font-size: 14px; letter-spacing: 4px; margin-bottom: 40px; color: #888; }
         input {
-            width: 100%; border: none; border-bottom: 1px solid #000; padding: 15px;
-            font-size: 16px; outline: none; text-align: center; margin-bottom: 30px;
+            width: 100%; max-width: 350px; border: none; border-bottom: 1px solid #000;
+            padding: 10px; font-size: 16px; outline: none; text-align: center; margin-bottom: 30px;
         }
-        button {
-            background: #000; color: #fff; border: none; padding: 12px 40px;
-            font-size: 11px; letter-spacing: 2px; cursor: pointer;
-        }
-
-        /* 分享展示模式 */
-        #share-ui {
-            display: none; min-height: 100vh; flex-direction: column; align-items: center; justify-content: center;
-            padding: 40px 20px; text-align: center;
-        }
-        #art-preview {
-            width: 280px; height: 280px; border-radius: 12px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15);
-            margin-bottom: 30px; background-size: cover;
-            animation: slideUp 1s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        #music-title {
-            font-size: 24px; font-weight: 700; margin-bottom: 5px;
-            animation: slideUp 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        #music-subtitle {
-            font-size: 16px; opacity: 0.5; margin-bottom: 40px;
-            animation: slideUp 1.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-        .player-wrap {
-            width: 100%; max-width: 600px;
-            animation: slideUp 1.6s cubic-bezier(0.16, 1, 0.3, 1);
+        button.gen-btn {
+            background: #000; color: #fff; padding: 12px 30px; border: none; cursor: pointer;
+            font-size: 12px; letter-spacing: 2px;
         }
 
-        @keyframes slideUp {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+        /* --- 分享模式：關鍵的全屏置中佈局 --- */
+        #player-wrapper {
+            display: none; /* 初始隱藏 */
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;    /* 垂直居中 */
+            justify-content: center; /* 水平居中 */
+            background-color: #ffffff; 
         }
 
-        footer { position: fixed; bottom: 30px; width: 100%; text-align: center; font-size: 10px; opacity: 0.3; letter-spacing: 1px; }
+        .player-container {
+            width: 100%;
+            max-width: 800px; /* 為了美感，限制最大寬度，避免在寬螢幕上拉得太扁 */
+            padding: 20px;
+            animation: fadeIn 1.2s ease-out;
+        }
+
+        iframe {
+            width: 100% !important;
+            border: none;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.1); /* 加入一點柔和陰影增加立體感 */
+            border-radius: 20px; /* 配合 Apple Music 的圓角風格 */
+        }
+
+        /* 浮動控制鈕 */
+        #share-again {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 10px;
+            color: #aaa;
+            text-decoration: none;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            cursor: pointer;
+            z-index: 100;
+            display: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
     </style>
 </head>
 <body>
 
-    <div id="bg-blur"></div>
-
-    <!-- 模式 1: 生成頁面 -->
+    <!-- 創作者模式 -->
     <div id="creator-ui">
-        <h1 class="logo">MUSIC SHARE</h1>
-        <div class="input-box">
-            <input type="text" id="url-input" placeholder="貼上 Apple Music 連結">
-            <button onclick="generate()">GENERATE LINK</button>
-        </div>
+        <h1>CURATOR</h1>
+        <input type="text" id="url-input" placeholder="PASTE APPLE MUSIC LINK">
+        <button class="gen-btn" onclick="generate()">GENERATE & PREVIEW</button>
     </div>
 
-    <!-- 模式 2: 展示頁面 -->
-    <div id="share-ui">
-        <div id="art-preview"></div>
-        <h2 id="music-title">Loading...</h2>
-        <p id="music-subtitle"></p>
-        <div class="player-wrap" id="player-mount"></div>
+    <!-- 分享模式 -->
+    <div id="player-wrapper">
+        <div class="player-container" id="mount-point"></div>
     </div>
 
-    <footer id="footer-text">MINIMALIST CURATOR</footer>
+    <div id="share-again" onclick="copyLink()">Copy Share Link</div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
-        const mPath = params.get('m');
+        const m = params.get('m');
 
-        if (mPath) {
-            loadSharePage(mPath);
+        if (m) {
+            initPlayer(m);
         }
 
-        async function loadSharePage(path) {
+        function initPlayer(pathData) {
+            // 切換 UI
             document.getElementById('creator-ui').style.display = 'none';
-            document.getElementById('share-ui').style.display = 'flex';
-            
-            // 嘗試從路徑解析 ID 並獲取資料 (使用 corsproxy 抓取預覽資訊)
-            const fullUrl = `https://music.apple.com${path}`;
-            
-            try {
-                // 這裡使用一個公共的 CORS 代理來抓取 Apple Music 的 Meta 標籤
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(fullUrl)}`);
-                const data = await res.json();
-                const html = data.contents;
-                
-                // 解析標題與圖片
-                const doc = new DOMParser().parseFromString(html, 'text/html');
-                const title = doc.querySelector('meta[property="og:title"]')?.content || "Unknown Song";
-                const image = doc.querySelector('meta[property="og:image"]')?.content || "";
-                const artist = doc.querySelector('meta[name="description"]')?.content.split('歌曲')[0] || "";
+            document.getElementById('player-wrapper').style.display = 'flex';
+            document.getElementById('share-again').style.display = 'block';
 
-                // 更新 UI
-                document.getElementById('music-title').innerText = title.split(' - ')[0];
-                document.getElementById('music-subtitle').innerText = artist;
-                document.getElementById('art-preview').style.backgroundImage = `url(${image})`;
-                document.getElementById('bg-blur').style.backgroundImage = `url(${image})`;
-                document.title = `${title} | Music Share`;
-            } catch (e) {
-                document.getElementById('music-title').innerText = "Music Shared";
+            let path = "";
+            if (pathData.includes('music.apple.com')) {
+                const url = new URL(pathData);
+                path = url.pathname + url.search;
+            } else {
+                path = pathData.startsWith('/') ? pathData : '/' + pathData;
             }
 
-            // 載入播放器
+            // 核心邏輯：判斷高度
+            // 如果是 playlist 或 album，給予較大的高度；如果是單曲(i=)，給予較小高度。
             const isCollection = path.includes('playlist') || (path.includes('album') && !path.includes('?i='));
-            const height = isCollection ? "450px" : "175px";
-            document.getElementById('player-mount').innerHTML = `
-                <iframe allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
-                style="width:100%; height:${height}; border:none; border-radius:12px; background:transparent;" 
-                src="https://embed.music.apple.com${path}"></iframe>`;
+            const frameHeight = isCollection ? "450px" : "180px";
+
+            const embedUrl = `https://embed.music.apple.com${path}`;
+            
+            document.getElementById('mount-point').innerHTML = `
+                <iframe 
+                    allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
+                    sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
+                    style="height: ${frameHeight};"
+                    src="${embedUrl}">
+                </iframe>
+            `;
         }
 
         function generate() {
-            const input = document.getElementById('url-input').value;
-            if(!input) return;
-            const url = new URL(input);
-            const path = url.pathname + url.search;
-            const finalLink = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
+            const val = document.getElementById('url-input').value.trim();
+            if (!val) return;
             
-            navigator.clipboard.writeText(finalLink).then(() => {
-                alert('連結已產生並複製！');
-                window.location.href = finalLink;
+            let path = val;
+            if (val.includes('music.apple.com')) {
+                const url = new URL(val);
+                path = url.pathname + url.search;
+            }
+
+            const finalUrl = window.location.origin + window.location.pathname + '?m=' + encodeURIComponent(path);
+            
+            navigator.clipboard.writeText(finalUrl).then(() => {
+                window.location.href = finalUrl;
+            });
+        }
+
+        function copyLink() {
+            navigator.clipboard.writeText(window.location.href).then(() => {
+                alert('Link Copied');
             });
         }
     </script>
